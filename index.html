@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>chainlink — habit tracker</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="chainlink">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#06060a">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjQwIiBmaWxsPSIjMDYwNjBhIi8+PHRleHQgeD0iOTAiIHk9IjEwOCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI2MCIgZmlsbD0iIzAwZDRhYSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+UlzwvdGV4dD48L3N2Zz4=">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#06060a;--bgCard:#0c0c14;--bgCell:#12121e;
+  --cellHover:#1c1c30;--done:#00d4aa;--doneGlow:rgba(0,212,170,0.18);
+  --skip:#f5a623;--skipGlow:rgba(245,166,35,0.14);
+  --miss:#c0283a;--missGlow:rgba(192,40,58,0.12);
+  --border:#1a1a2a;--borderLight:#262640;
+  --text:#d0d0d8;--textDim:#5a5a70;--textMuted:#2e2e42;
+  --accent:#00d4aa;--accentSoft:rgba(0,212,170,0.07);
+  --warn:#ff4466;--groupLabel:#7a7af0;--streakGold:#ffd700;
+  --todayRing:rgba(0,212,170,0.45);
+}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.5;
+  min-height:100vh;min-height:-webkit-fill-available;
+  -webkit-user-select:none;user-select:none;
+  -webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
+  overscroll-behavior:none;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+button{cursor:pointer;font-family:inherit}
+.header{padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:8px}
+.chain-logo svg{display:block}
+.brand-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;color:var(--accent);letter-spacing:-0.03em}
+.month-label{font-family:'Space Grotesk',sans-serif;color:var(--textDim);font-size:12px;font-weight:500;margin-left:4px}
+.header-r{display:flex;align-items:center;gap:8px}
+.badge{background:var(--accentSoft);color:var(--accent);border:1px solid rgba(0,212,170,0.13);padding:2px 9px;border-radius:20px;font-size:9px;font-weight:600}
+.btn{background:transparent;color:var(--textDim);border:1px solid var(--border);padding:4px 11px;border-radius:5px;font-size:10px;transition:all .15s}
+.btn:hover{color:var(--text);border-color:var(--borderLight);background:var(--bgCell)}
+.btn-accent{background:var(--accentSoft);color:var(--accent);border-color:rgba(0,212,170,0.18)}
+.btn-danger{color:var(--warn);border-color:rgba(255,68,102,0.18)}
+
+.cell{border-radius:4px;background:var(--bgCell);border:1px solid var(--border);cursor:pointer;transition:all .12s ease;flex-shrink:0}
+.cell:hover{background:var(--cellHover);border-color:var(--borderLight)}
+.cell:active{transform:scale(0.88);transition:transform .05s}
+.cell.done{background:var(--done);border-color:var(--done);box-shadow:0 0 8px var(--doneGlow),inset 0 1px 0 rgba(255,255,255,.16)}
+.cell.skip{background:var(--skip);border-color:var(--skip);box-shadow:0 0 6px var(--skipGlow)}
+.cell.miss{background:var(--miss);border-color:var(--miss);box-shadow:0 0 6px var(--missGlow)}
+.cell.today-cell{border-color:var(--accent);box-shadow:0 0 0 2px var(--todayRing);z-index:2;position:relative}
+.cell.today-cell.done{box-shadow:0 0 0 2px var(--todayRing),0 0 8px var(--doneGlow)}
+.cell.future{opacity:.15;cursor:default}.cell.future:hover{background:var(--bgCell)}.cell.future:active{transform:none}
+
+.streak-chip{display:flex;align-items:center;gap:3px;white-space:nowrap}
+.streak-n{font-size:12px;font-weight:700;font-family:'Space Grotesk',sans-serif;line-height:1}
+.streak-l{font-size:7px;color:var(--textDim);font-weight:500}
+
+.stats{display:flex;gap:14px;padding:12px 20px 0;border-top:1px solid var(--border);margin-top:8px;font-size:10px;flex-wrap:wrap}
+.stat{display:flex;align-items:baseline;gap:3px}
+.stat-v{font-weight:700;font-family:'Space Grotesk',sans-serif}
+
+.foot{padding:12px 20px;margin-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:8px;color:var(--textMuted)}
+.foot a{color:var(--textDim);text-decoration:none}
+
+.help{background:var(--bgCard);border:1px solid var(--border);border-radius:8px;padding:14px;margin:12px 20px;font-size:10px;color:var(--textDim);line-height:1.8}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal{background:var(--bgCard);border:1px solid var(--border);border-radius:10px;padding:22px;width:100%;max-width:520px;max-height:80vh;overflow-y:auto}
+.modal h3{font-family:'Space Grotesk',sans-serif;color:var(--accent);font-size:14px;margin-bottom:4px}
+.modal .hint{color:var(--textDim);font-size:9px;margin-bottom:12px;line-height:1.6}
+.modal textarea{width:100%;min-height:200px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:12px;font-family:inherit;font-size:11px;line-height:1.7;outline:none;resize:vertical;-webkit-user-select:text;user-select:text}
+.modal-btns{margin-top:12px;display:flex;gap:8px}
+.tooltip{position:fixed;background:#16162a;color:var(--text);border:1px solid var(--borderLight);padding:3px 7px;border-radius:4px;font-size:9px;pointer-events:none;z-index:200;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.5)}
+
+/* ═══ DESKTOP: horizontal ═══ */
+.grid-wrap{padding:14px 20px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.grid-desk{display:none}.grid-mob{display:none}
+
+@media(min-width:641px){
+  .grid-desk{display:block}.grid-mob{display:none!important}
+  .glabel{color:var(--groupLabel);font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:10px 0 3px;border-top:1px solid var(--border);margin-top:2px}
+  .glabel.first{border-top:none;margin-top:0}
+  .hrow{display:flex;align-items:center;padding:2px 0;gap:8px}
+  .hrow:hover{background:rgba(255,255,255,.008)}
+  .hname{width:130px;min-width:130px;font-size:11px;color:var(--text);text-align:right;padding-right:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+  .hcells{display:flex;gap:3px}
+  .grid-desk .cell{height:28px}
+}
+
+/* ═══ MOBILE: vertical ═══ */
+@media(max-width:640px){
+  .grid-desk{display:none!important}.grid-mob{display:block}
+  .vtable{display:flex;flex-direction:row;gap:0}
+  .vcol{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+  .vname{font-size:7.5px;color:var(--text);font-weight:600;writing-mode:vertical-lr;text-orientation:mixed;transform:rotate(180deg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 1px;letter-spacing:.02em}
+  .grid-mob .cell{width:28px}
+  .dlbl{display:flex;align-items:center;justify-content:flex-end;font-size:8px;color:var(--textMuted);font-weight:500;padding-right:4px;white-space:nowrap}
+  .dlbl.today{color:var(--accent);font-weight:700}
+  .dlbl.future{opacity:.35}
+  .gsep{font-size:6.5px;color:var(--groupLabel);font-weight:700;letter-spacing:.1em;text-transform:uppercase;writing-mode:vertical-lr;transform:rotate(180deg);padding:0 1px;opacity:.6}
+  .header{padding:12px 10px 10px}
+  .grid-wrap{padding:10px 6px}
+  .stats{padding:10px 10px 0;gap:10px;font-size:9px}
+  .foot{padding:10px 8px}
+  .brand-name{font-size:17px}
+  .month-label{font-size:10px}
+  .badge{font-size:8px;padding:2px 7px}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="tooltip" class="tooltip" style="display:none"></div>
+<script>
+const LS_H="cl5-h",LS_L="cl5-l";
+const DEF=[
+  {name:"Meditated",freq:1,group:"Dailies"},
+  {name:"Exercise",freq:1,group:"Dailies"},
+  {name:"Read 30min",freq:1,group:"Dailies"},
+  {name:"Wrote",freq:1,group:"Dailies"},
+  {name:"Cleaned apt",freq:7,group:"Weeklies"},
+  {name:"Called family",freq:7,group:"Weeklies"},
+  {name:"Finances",freq:30,group:"Monthly"}
+];
+
+let S={habits:DEF,log:{},showEditor:false,editText:"",showHelp:false};
+function load(){try{const h=localStorage.getItem(LS_H);if(h)S.habits=JSON.parse(h)}catch{}try{const l=localStorage.getItem(LS_L);if(l)S.log=JSON.parse(l)}catch{}}
+function saveH(){try{localStorage.setItem(LS_H,JSON.stringify(S.habits))}catch{}}
+function saveL(){try{localStorage.setItem(LS_L,JSON.stringify(S.log))}catch{}}
+
+function dk(d){return d.toISOString().split("T")[0]}
+function td(){return dk(new Date())}
+function pd(s){return new Date(s+"T12:00:00")}
+function dim(y,m){return new Date(y,m+1,0).getDate()}
+function getDow(s){return pd(s).getDay()}
+function dowLbl(s){return["Su","Mo","Tu","We","Th","Fr","Sa"][getDow(s)]}
+function monthName(){return new Date().toLocaleString('default',{month:'long',year:'numeric'})}
+function shortMonth(){return new Date().toLocaleString('default',{month:'short'})}
+function todayNum(){return new Date().getDate()}
+
+function getMonthDays(){const n=new Date(),y=n.getFullYear(),m=n.getMonth(),c=dim(y,m),d=[];for(let i=1;i<=c;i++)d.push(dk(new Date(y,m,i)));return d}
+
+// Chain logo SVG
+const LOGO=`<div class="chain-logo"><svg width="28" height="24" viewBox="0 0 28 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="2" y="1" width="10" height="18" rx="5" stroke="#00d4aa" stroke-width="2.5" fill="none"/>
+<rect x="16" y="5" width="10" height="18" rx="5" stroke="#00d4aa" stroke-width="2.5" fill="none"/>
+</svg></div>`;
+
+// Slots for a habit
+function getSlots(h){
+  const days=getMonthDays();const t=td();const ti=todayNum()-1;
+  const n=new Date(),y=n.getFullYear(),m=n.getMonth();
+
+  if(h.freq>=28){
+    // Monthly: 12 boxes Jan-Dec
+    const cm=m;const slots=[];
+    for(let i=0;i<12;i++){
+      const k=y+"-"+String(i+1).padStart(2,"0");
+      const lbl=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][i];
+      slots.push({logKey:h.name+"::M::"+k,label:lbl,isCurrent:i===cm,isFuture:i>cm});
+    }
+    // Reorder: current month first, then past desc, then future
+    const cur=slots.filter(s=>s.isCurrent);
+    const past=slots.filter(s=>!s.isCurrent&&!s.isFuture).reverse();
+    const fut=slots.filter(s=>s.isFuture);
+    return{type:"monthly",slots:[...cur,...past,...fut]};
+  }
+
+  if(h.freq>=5){
+    // Weekly: weeks in month
+    const dc=dim(y,m);const wkStarts=[];
+    for(let d=1;d<=dc;d++){const dt=new Date(y,m,d);if(d===1||dt.getDay()===1)wkStarts.push(d)}
+    const todayD=todayNum();const slots=[];
+    wkStarts.forEach((ws,i)=>{
+      const we=i<wkStarts.length-1?wkStarts[i+1]-1:dc;
+      const k=y+"-"+String(m+1).padStart(2,"0")+"-W"+(i+1);
+      const lbl="W"+(i+1)+" ("+ws+"-"+we+")";
+      const isCur=todayD>=ws&&todayD<=we;
+      const isFut=ws>todayD;
+      slots.push({logKey:h.name+"::W::"+k,label:lbl,isCurrent:isCur,isFuture:isFut});
+    });
+    const cur=slots.filter(s=>s.isCurrent);
+    const past=slots.filter(s=>!s.isCurrent&&!s.isFuture).reverse();
+    const fut=slots.filter(s=>s.isFuture);
+    return{type:"weekly",slots:[...cur,...past,...fut]};
+  }
+
+  // Daily: today first, then past desc, then future
+  const slots=[];
+  // Today
+  slots.push({logKey:h.name+"::"+days[ti],label:todayNum()+" "+dowLbl(days[ti]),isCurrent:true,isFuture:false,dateStr:days[ti]});
+  // Past desc
+  for(let i=ti-1;i>=0;i--)
+    slots.push({logKey:h.name+"::"+days[i],label:(i+1)+" "+dowLbl(days[i]),isCurrent:false,isFuture:false,dateStr:days[i]});
+  // Future
+  for(let i=ti+1;i<days.length;i++)
+    slots.push({logKey:h.name+"::"+days[i],label:(i+1)+" "+dowLbl(days[i]),isCurrent:false,isFuture:true,dateStr:days[i]});
+  return{type:"daily",slots};
+}
+
+function slotVal(lk){return S.log[lk]}
+function slotMissed(slot){return!slot.isFuture&&!slot.isCurrent&&!S.log[slot.logKey]}
+
+function lifetimeStreak(h){
+  let s=0;const d=new Date();
+  for(let i=0;i<3650;i++){
+    const v=S.log[h.name+"::"+dk(d)];
+    if(v==="y")s++;else if(v==="s"){}else if(i===0){}else break;
+    d.setDate(d.getDate()-1);
+  }
+  return s;
+}
+
+function dayScore(day){
+  let p=0,d=0;S.habits.forEach(h=>{if(h.freq>=5)return;const v=S.log[h.name+"::"+day];if(v==="s")return;p++;if(v==="y")d++});return p>0?d/p:0;
+}
+
+function groupH(l){const g=[];let c=null;l.forEach(h=>{if(!c||c.name!==h.group){c={name:h.group,habits:[]};g.push(c)}c.habits.push(h)});return g}
+function parseH(t){const r=[];let g="Habits";t.split("\n").forEach(l=>{const s=l.trim();if(!s||s[0]==="#")return;if(s[0]==="!"){g=s.slice(1).trim();return}const p=s.split(":");if(p.length>=2)r.push({name:p[0].trim(),freq:parseInt(p[1])||1,group:g})});return r}
+function toText(){let t="# chainlink habits\n# Name: freq (1=daily, 7=weekly, 30=monthly)\n# ! Group for headings\n\n",lg="";S.habits.forEach(h=>{if(h.group!==lg){t+="! "+h.group+"\n";lg=h.group}t+=h.name+": "+h.freq+"\n"});return t}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
+
+let ttEl;
+function showTT(e,t){if(!ttEl)ttEl=document.getElementById("tooltip");ttEl.textContent=t;ttEl.style.display="block";const x=e.touches?e.touches[0].clientX:e.clientX;const y=e.touches?e.touches[0].clientY:e.clientY;ttEl.style.left=(x+12)+"px";ttEl.style.top=(y-28)+"px"}
+function hideTT(){if(!ttEl)ttEl=document.getElementById("tooltip");ttEl.style.display="none"}
+
+function cellSz(si,total,isCur){const mx=32,mn=14;if(isCur)return mx;const r=1-si/Math.max(total-1,1);return Math.round(mn+(mx-8-mn)*r*r)}
+
+function cellCls(lk,isCur,isFut){
+  const v=S.log[lk];let c="cell";
+  if(v==="y")c+=" done";else if(v==="s")c+=" skip";else if(!isFut&&!isCur)c+=" miss";
+  if(isCur)c+=" today-cell";if(isFut)c+=" future";return c;
+}
+
+function streakHTML(st){
+  let sc="var(--textMuted)",f="";
+  if(st>=100){sc="var(--streakGold)";f="🔥"}
+  else if(st>=30){sc="var(--streakGold)";f="🔥"}
+  else if(st>=14){sc="var(--accent)";f="🔥"}
+  else if(st>=7)sc="var(--accent)";
+  else if(st>=1)sc="var(--textDim)";
+  return`<div class="streak-chip">${f?`<span style="font-size:10px">${f}</span>`:""}<span class="streak-n" style="color:${sc}">${st}</span><span class="streak-l">${st===1?"day":"days"}</span></div>`;
+}
+
+// ═══ RENDER ═══
+function render(){
+  const app=document.getElementById("app");
+  const days=getMonthDays();const t=td();const ti=todayNum()-1;const rem=days.length-todayNum();
+  const GAP=3;
+  let html="";
+
+  // Header
+  html+=`<div class="header"><div class="brand">${LOGO}<span class="brand-name">chainlink</span><span class="month-label">${monthName()}</span></div>
+  <div class="header-r"><span class="badge">Day ${todayNum()} · ${rem} left</span>
+  <button class="btn" onclick="openEd()">edit</button><button class="btn" onclick="S.showHelp=!S.showHelp;render()">?</button></div></div>`;
+
+  if(S.showHelp){
+    html+=`<div class="help">
+    <div style="color:var(--accent);font-weight:600;margin-bottom:6px;font-size:11px;display:flex;align-items:center;gap:6px">${LOGO} chainlink</div>
+    <div><b style="color:var(--text)">Tap</b> → done <span style="color:var(--done)">■</span> · tap → <b style="color:var(--skip)">skip</b> <span style="color:var(--skip)">■</span> · tap → clear</div>
+    <div><b style="color:var(--miss)">Red</b> = missed (past day, no entry)</div>
+    <div><b style="color:var(--text)">Today is at the top</b>, largest box. Past days shrink below it.</div>
+    <div><b>Daily</b> = days in month · <b>Weekly</b> = weeks in month · <b>Monthly</b> = 12 boxes (Jan–Dec)</div>
+    <div><b style="color:var(--text)">Streaks are lifetime</b> — persist across months forever.</div>
+    <div style="margin-top:8px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+      <span style="display:inline-block;width:14px;height:14px;background:var(--done);border-radius:3px"></span>done
+      <span style="display:inline-block;width:14px;height:14px;background:var(--skip);border-radius:3px;margin-left:6px"></span>skip
+      <span style="display:inline-block;width:14px;height:14px;background:var(--miss);border-radius:3px;margin-left:6px"></span>missed
+      <span style="display:inline-block;width:14px;height:14px;background:var(--bgCell);border:1px solid var(--border);border-radius:3px;margin-left:6px"></span>future
+    </div>
+    <div style="margin-top:10px"><button class="btn btn-danger" onclick="resetAll()">reset all data</button></div></div>`;
+  }
+
+  html+=`<div class="grid-wrap">`;
+  const groups=groupH(S.habits);
+  const allSlots=S.habits.map(h=>getSlots(h));
+
+  // ═══ DESKTOP: horizontal — habits=rows, slots=columns ═══
+  html+=`<div class="grid-desk">`;
+  groups.forEach((g,gi)=>{
+    html+=`<div class="glabel ${gi===0?"first":""}">${esc(g.name)}</div>`;
+    g.habits.forEach(h=>{
+      const info=getSlots(h);const st=lifetimeStreak(h);
+      html+=`<div class="hrow"><div class="hname">${esc(h.name)}</div><div class="hcells">`;
+      info.slots.forEach((slot,si)=>{
+        const sz=cellSz(si,info.slots.length,slot.isCurrent);
+        const cls=cellCls(slot.logKey,slot.isCurrent,slot.isFuture);
+        const lbl=slot.label+(S.log[slot.logKey]==="y"?" ✓":S.log[slot.logKey]==="s"?" skip":slotMissed(slot)?" missed":"");
+        if(slot.isFuture){
+          html+=`<div class="${cls}" style="width:${sz}px" onmouseenter="showTT(event,'${esc(h.name)} · ${esc(slot.label)}')" onmouseleave="hideTT()"></div>`;
+        }else{
+          html+=`<div class="${cls}" style="width:${sz}px" onclick="tog('${esc(slot.logKey)}')" onmouseenter="showTT(event,'${esc(h.name)} · ${esc(slot.label)}')" onmouseleave="hideTT()"></div>`;
+        }
+      });
+      html+=`</div><div style="padding-left:8px">${streakHTML(st)}</div></div>`;
+    });
+  });
+  html+=`</div>`;
+
+  // ═══ MOBILE: vertical — habits=columns, slots=rows ═══
+  html+=`<div class="grid-mob"><div class="vtable">`;
+
+  // Left label column — use first daily habit for reference labels
+  const refH=S.habits.find(h=>h.freq<5)||S.habits[0];
+  const refInfo=getSlots(refH);
+
+  html+=`<div class="vcol" style="padding-right:3px">`;
+  html+=`<div style="height:56px"></div>`;
+  refInfo.slots.forEach((slot,si)=>{
+    const sz=cellSz(si,refInfo.slots.length,slot.isCurrent);
+    let cls="dlbl";if(slot.isCurrent)cls+=" today";else if(slot.isFuture)cls+=" future";
+    html+=`<div class="${cls}" style="height:${sz}px;margin-bottom:${GAP}px">${slot.label}</div>`;
+  });
+  html+=`<div style="height:36px"></div></div>`;
+
+  // Habit columns
+  let prevG="";
+  S.habits.forEach((h,hi)=>{
+    const info=allSlots[hi];const st=lifetimeStreak(h);
+    if(h.group!==prevG){
+      // Group sep column
+      html+=`<div class="vcol" style="padding:0 1px"><div style="height:56px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px"><span class="gsep">${esc(h.group)}</span></div>`;
+      refInfo.slots.forEach((s,si)=>{const sz=cellSz(si,refInfo.slots.length,s.isCurrent);html+=`<div style="height:${sz}px;margin-bottom:${GAP}px"></div>`});
+      html+=`<div style="height:36px"></div></div>`;
+      prevG=h.group;
+    }
+
+    html+=`<div class="vcol" style="padding:0 1px">`;
+    html+=`<div style="height:56px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;width:30px"><div class="vname" style="max-height:52px">${esc(h.name)}</div></div>`;
+
+    info.slots.forEach((slot,si)=>{
+      const sz=cellSz(si,info.slots.length,slot.isCurrent);
+      const cls=cellCls(slot.logKey,slot.isCurrent,slot.isFuture);
+      if(slot.isFuture){
+        html+=`<div class="${cls}" style="width:28px;height:${sz}px;margin-bottom:${GAP}px"></div>`;
+      }else{
+        html+=`<div class="${cls}" style="width:28px;height:${sz}px;margin-bottom:${GAP}px" onclick="tog('${esc(slot.logKey)}')"></div>`;
+      }
+    });
+
+    // Streak
+    let sc="var(--textMuted)",f="";
+    if(st>=100){sc="var(--streakGold)";f="🔥"}else if(st>=30){sc="var(--streakGold)";f="🔥"}else if(st>=14){sc="var(--accent)";f="🔥"}else if(st>=7)sc="var(--accent)";else if(st>=1)sc="var(--textDim)";
+    html+=`<div style="height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px">`;
+    if(f)html+=`<span style="font-size:9px;line-height:1">${f}</span>`;
+    html+=`<span style="font-size:10px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:${sc};line-height:1">${st}</span>`;
+    html+=`<span style="font-size:6px;color:var(--textDim);line-height:1">days</span></div>`;
+    html+=`</div>`;
+  });
+  html+=`</div></div>`;
+
+  // Stats
+  const ts=dayScore(t);const tPct=Math.round(ts*100);const totalDone=Object.values(S.log).filter(v=>v==="y").length;
+  html+=`<div class="stats">
+    <div class="stat"><span style="color:var(--textDim)">Today</span> <span class="stat-v" style="color:${tPct>70?"var(--accent)":tPct>40?"var(--skip)":"var(--warn)"}">${tPct}%</span></div>
+    <div class="stat"><span style="color:var(--textDim)">Habits</span> <span class="stat-v" style="color:var(--text)">${S.habits.length}</span></div>
+    <div class="stat"><span style="color:var(--textDim)">Lifetime</span> <span class="stat-v" style="color:var(--accent)">${totalDone} ✓</span></div>
+  </div>`;
+
+  html+=`</div>`; // grid-wrap
+  html+=`<div class="foot"><span>chainlink</span><span>${t}</span></div>`;
+
+  if(S.showEditor){
+    html+=`<div class="overlay" onclick="if(event.target===this)closeEd()"><div class="modal">
+    <h3>edit habits</h3>
+    <div class="hint">One per line: <b style="color:var(--text)">Name: frequency</b><br>Frequency: <b>1</b>=daily <b>7</b>=weekly <b>30</b>=monthly<br><b style="color:var(--groupLabel)">! Group</b> for headings · <b>#</b> comments</div>
+    <textarea id="editArea" spellcheck="false">${esc(S.editText)}</textarea>
+    <div class="modal-btns"><button class="btn btn-accent" onclick="saveEd()">save</button><button class="btn" onclick="closeEd()">cancel</button></div>
+    </div></div>`;
+  }
+
+  app.innerHTML=html;
+}
+
+window.tog=function(lk){const c=S.log[lk];if(!c)S.log[lk]="y";else if(c==="y")S.log[lk]="s";else delete S.log[lk];saveL();render()};
+window.showTT=showTT;window.hideTT=hideTT;
+window.openEd=function(){S.editText=toText();S.showEditor=true;render()};
+window.closeEd=function(){S.showEditor=false;render()};
+window.saveEd=function(){const a=document.getElementById("editArea");if(a){const p=parseH(a.value);if(p.length>0){S.habits=p;saveH()}}S.showEditor=false;render()};
+window.resetAll=function(){if(!confirm("Reset ALL data?"))return;S.habits=DEF;S.log={};try{localStorage.removeItem(LS_H);localStorage.removeItem(LS_L)}catch{}render()};
+
+load();render();
+</script>
+</body>
+</html>
